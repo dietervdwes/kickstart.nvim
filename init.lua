@@ -83,7 +83,7 @@ I hope you enjoy your Neovim journey,
 
 P.S. You can delete this when you're done too. It's your config now! :)
 --]]
-
+-- luacheck: globals vim
 -- Set <space> as the leader key
 -- See `:help mapleader`
 --  NOTE: Must happen before plugins are loaded (otherwise wrong leader will be used)
@@ -91,7 +91,7 @@ vim.g.mapleader = ' '
 vim.g.maplocalleader = ' '
 
 -- Set to true if you have a Nerd Font installed
-vim.g.have_nerd_font = false
+vim.g.have_nerd_font = true
 
 -- [[ Setting options ]]
 -- See `:help vim.opt`
@@ -102,7 +102,7 @@ vim.g.have_nerd_font = false
 vim.opt.number = true
 -- You can also add relative line numbers, to help with jumping.
 --  Experiment for yourself to see if you like it!
--- vim.opt.relativenumber = true
+vim.opt.relativenumber = true
 
 -- Enable mouse mode, can be useful for resizing splits for example!
 vim.opt.mouse = 'a'
@@ -185,10 +185,22 @@ vim.keymap.set('t', '<Esc><Esc>', '<C-\\><C-n>', { desc = 'Exit terminal mode' }
 --  Use CTRL+<hjkl> to switch between windows
 --
 --  See `:help wincmd` for a list of all window commands
-vim.keymap.set('n', '<C-h>', '<C-w><C-h>', { desc = 'Move focus to the left window' })
-vim.keymap.set('n', '<C-l>', '<C-w><C-l>', { desc = 'Move focus to the right window' })
-vim.keymap.set('n', '<C-j>', '<C-w><C-j>', { desc = 'Move focus to the lower window' })
-vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper window' })
+vim.keymap.set({ 'n', 'i' }, '<C-h>', '<C-w><C-h>', { desc = 'Move focus to the left window' })
+vim.keymap.set({ 'n', 'i' }, '<C-l>', '<C-w><C-l>', { desc = 'Move focus to the right window' })
+vim.keymap.set({ 'n', 'i' }, '<C-j>', '<C-w><C-j>', { desc = 'Move focus to the lower window' })
+vim.keymap.set({ 'n', 'i' }, '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper window' })
+
+--  Insert code chunk for Quarto
+vim.keymap.set({ 'n', 'i' }, '<m-i>', '<esc>i```{python}<cr>```<esc>o', { desc = '[i]nsert code chunk' })
+
+--  Split terminal for iPython
+vim.keymap.set({ 'n' }, '<leader>ci', ':split term://ipython<cr>', { desc = '<leader>[ci]: [c]ode an [i]Python split window' })
+
+-- Ctrl + S to save the current buffer
+vim.keymap.set({ 'n', 'i' }, '<c-s>', '<esc>:w<cr>', { desc = '[s]ave current buffer (Ctrl + S)' })
+
+-- TODO: Ctrl + Shift + S to save as
+-- vim.keymap.set({ 'n', 'i' }, '', '<esc>:w ', { desc = '[s]ave as, current buffer (Ctrl + Shift + S)' })
 
 -- [[ Basic Autocommands ]]
 --  See `:help lua-guide-autocommands`
@@ -201,6 +213,14 @@ vim.api.nvim_create_autocmd('TextYankPost', {
   group = vim.api.nvim_create_augroup('kickstart-highlight-yank', { clear = true }),
   callback = function()
     vim.highlight.on_yank()
+  end,
+})
+
+vim.api.nvim_create_autocmd('TermOpen', {
+  desc = 'remove line number in terminal',
+  group = vim.api.nvim_create_augroup('kickstart-term', { clear = true }),
+  callback = function()
+    vim.wo.number = false
   end,
 })
 
@@ -240,6 +260,63 @@ require('lazy').setup({
   -- "gc" to comment visual regions/lines
   { 'numToStr/Comment.nvim', opts = {} },
 
+  -- GitHub Copilot
+  {
+    'github/copilot.vim',
+    config = function() end,
+    -- Assuming Copilot doesn't need further Lua configuration
+  },
+  -- Quarto for iPython Notebooks etc.
+  {
+    'quarto-dev/quarto-nvim',
+    opts = {},
+    dependencies = {
+      -- 'quarto-dev/quarto-cli',
+      'jmbuhr/otter.nvim',
+    },
+    config = function() end,
+  },
+  -- Vim Visual Multi
+  {
+    'mg979/vim-visual-multi',
+    config = function()
+      -- If vim-visual-multi requires Lua configuration, it goes here.
+      -- Since vim-visual-multi primarily uses Vimscript, you might not need anything here.
+      -- This is just an example of how to structure it if configuration is needed.
+    end,
+  },
+  -- VIM-slime
+  {
+    'jpalardy/vim-slime',
+    init = function()
+      -- these two should be set before the plugin loads
+      vim.g.slime_target = 'neovim'
+      -- vim.g.slime_no_mappings = true
+    end,
+    config = function()
+      -- vim.g.slime_input_pid = false
+      -- vim.g.slime_suggest_default = true
+      -- vim.g.slime_menu_config = false
+      -- vim.g.slime_neovim_ignore_unlisted = false
+      -- -- options not set here are g:slime_neovim_menu_order, g:slime_neovim_menu_delimiter, and g:slime_get_jobid
+      -- -- see the documentation above to learn about those options
+      --
+      -- -- called MotionSend but works with textobjects as well
+      -- vim.keymap.set('n', 'gz', '<Plug>SlimeMotionSend', { remap = true, silent = false })
+      -- vim.keymap.set('n', 'gzz', '<Plug>SlimeLineSend', { remap = true, silent = false })
+      -- vim.keymap.set('x', 'gz', '<Plug>SlimeRegionSend', { remap = true, silent = false })
+      -- vim.keymap.set('n', 'gzc', '<Plug>SlimeConfig', { remap = true, silent = false })
+      vim.keymap.set({ 'n', 'i' }, '<m-<cr>', function()
+        vim.cmd [[ call slime#send_cell() ]]
+      end, { desc = 'send code cell to terminal' })
+    end,
+  },
+
+  -- Rainbow CSV
+  {
+    'mechatroner/rainbow_csv',
+    config = function() end,
+  },
   -- Here is a more advanced example where we pass configuration
   -- options to `gitsigns.nvim`. This is equivalent to the following Lua:
   --    require('gitsigns').setup({ ... })
@@ -402,6 +479,27 @@ require('lazy').setup({
     end,
   },
 
+  -- TMUX integration
+  {
+    'christoomey/vim-tmux-navigator',
+    cmd = {
+      'TmuxNavigateLeft',
+      'TmuxNavigateDown',
+      'TmuxNavigateUp',
+      'TmuxNavigateRight',
+      'TmuxNavigatePrevious',
+    },
+    keys = {
+      { '<c-h>', '<cmd><C-U>TmuxNavigateLeft<cr>' },
+      { '<c-j>', '<cmd><C-U>TmuxNavigateDown<cr>' },
+      { '<c-k>', '<cmd><C-U>TmuxNavigateUp<cr>' },
+      { '<c-l>', '<cmd><C-U>TmuxNavigateRight<cr>' },
+      { '<c-\\>', '<cmd><C-U>TmuxNavigatePrevious<cr>' },
+    },
+    opts = {},
+    config = function() end,
+  },
+
   { -- LSP Configuration & Plugins
     'neovim/nvim-lspconfig',
     dependencies = {
@@ -528,6 +626,7 @@ require('lazy').setup({
       local capabilities = vim.lsp.protocol.make_client_capabilities()
       capabilities = vim.tbl_deep_extend('force', capabilities, require('cmp_nvim_lsp').default_capabilities())
 
+      capabilities.workspace.didChangeWatchedFiles.dynamicRegistration = false
       -- Enable the following language servers
       --  Feel free to add/remove any LSPs that you want here. They will automatically be installed.
       --
@@ -540,7 +639,7 @@ require('lazy').setup({
       local servers = {
         -- clangd = {},
         -- gopls = {},
-        -- pyright = {},
+        pyright = {},
         -- rust_analyzer = {},
         -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
         --
@@ -626,7 +725,7 @@ require('lazy').setup({
       formatters_by_ft = {
         lua = { 'stylua' },
         -- Conform can also run multiple formatters sequentially
-        -- python = { "isort", "black" },
+        python = { 'isort', 'black' },
         --
         -- You can use a sub-list to tell conform to run *until* a formatter
         -- is found.
@@ -735,11 +834,68 @@ require('lazy').setup({
           { name = 'nvim_lsp' },
           { name = 'luasnip' },
           { name = 'path' },
+          { name = 'otter' },
         },
       }
     end,
   },
 
+  { -- Dashboard
+    'goolord/alpha-nvim', -- Dashboard
+    -- dependencies = {"nvim-tree/nvim-web-devicons"}, -- i'm not sure if i want this
+    config = function()
+      local alpha = require 'alpha'
+      local dashboard = require 'alpha.themes.dashboard'
+      dashboard.section.header.val = {
+        [[                                                                       ]],
+        [[  ██████   █████                   █████   █████  ███                  ]],
+        [[ ░░██████ ░░███                   ░░███   ░░███  ░░░                   ]],
+        [[  ░███░███ ░███   ██████   ██████  ░███    ░███  ████  █████████████   ]],
+        [[  ░███░░███░███  ███░░███ ███░░███ ░███    ░███ ░░███ ░░███░░███░░███  ]],
+        [[  ░███ ░░██████ ░███████ ░███ ░███ ░░███   ███   ░███  ░███ ░███ ░███  ]],
+        [[  ░███  ░░█████ ░███░░░  ░███ ░███  ░░░█████░    ░███  ░███ ░███ ░███  ]],
+        [[  █████  ░░█████░░██████ ░░██████     ░░███      █████ █████░███ █████ ]],
+        [[ ░░░░░    ░░░░░  ░░░░░░   ░░░░░░       ░░░      ░░░░░ ░░░░░ ░░░ ░░░░░  ]],
+        [[                                                                       ]],
+        [[                            NVIM Kickstart                             ]],
+      }
+
+      dashboard.section.buttons.val = {
+        dashboard.button('f', '  Find file', ':Telescope find_files hidden=true no_ignore=true<CR>'),
+        dashboard.button('e', '  New file', ':ene <BAR> startinsert <CR>'),
+        dashboard.button('c', '  Configuration', ':e ~/.config/nvim/init.lua <CR>'),
+        dashboard.button('u', '  Update plugins', ':Lazy sync<CR>'),
+        dashboard.button('r', '  Recently opened files', '<cmd>Telescope oldfiles<CR>'),
+        dashboard.button('l', '  Open last session', '<cmd>RestoreSession<CR>'),
+        dashboard.button('q', '  Quit', ':qa<CR>'),
+      }
+
+      local handle, err = io.popen 'fortune -s'
+      if err or handle == nil then
+        dashboard.section.footer.val = 'May the truth be found.'
+        alpha.setup(dashboard.opts)
+        return
+      end
+      local fortune = handle:read '*a'
+      handle:close()
+      dashboard.section.footer.val = fortune
+      alpha.setup(dashboard.opts)
+    end,
+  },
+  { 'uga-rosa/ccc.nvim' }, -- color highlighting
+  { 'wellle/targets.vim' }, -- adds more targets like [ or ,
+  { 'nvim-neorg/neorg' },
+  {
+    'edluffy/hologram.nvim',
+    lazy = true,
+    config = function()
+      require('hologram').setup {
+        auto_display = true, -- WIP automatic markdown image display, may be prone to breaking
+      }
+    end,
+  },
+  { 'puremourning/vimspector' }, -- debugging
+  { 'lervag/vimtex' }, -- for latex
   { -- You can easily change to a different colorscheme.
     -- Change the name of the colorscheme plugin below, and then
     -- change the command in the config to whatever the name of that colorscheme is.
@@ -751,7 +907,8 @@ require('lazy').setup({
       -- Load the colorscheme here.
       -- Like many other themes, this one has different styles, and you could load
       -- any other, such as 'tokyonight-storm', 'tokyonight-moon', or 'tokyonight-day'.
-      vim.cmd.colorscheme 'tokyonight-night'
+      -- vim.cmd.colorscheme 'tokyonight-night'
+      vim.cmd.colorscheme 'tokyonight'
 
       -- You can configure highlights by doing something like:
       vim.cmd.hi 'Comment gui=none'
@@ -828,6 +985,12 @@ require('lazy').setup({
       --    - Treesitter + textobjects: https://github.com/nvim-treesitter/nvim-treesitter-textobjects
     end,
   },
+  {
+    -- NOTE: This is the ToggleTerm setup which is used to display LazyGit
+    -- Toggleterm, A neovim plugin to persist and toggle multiple terminals during an editing session
+    -- Used to display LazyGit
+    'akinsho/toggleterm.nvim',
+  },
 
   -- The following two comments only work if you have downloaded the kickstart repo, not just copy pasted the
   -- init.lua. If you want these files, they are in the repository, so you can just download them and
@@ -838,16 +1001,17 @@ require('lazy').setup({
   --  Here are some example plugins that I've included in the Kickstart repository.
   --  Uncomment any of the lines below to enable them (you will need to restart nvim).
   --
-  -- require 'kickstart.plugins.debug',
-  -- require 'kickstart.plugins.indent_line',
-  -- require 'kickstart.plugins.lint',
+
+  require 'kickstart.plugins.debug',
+  require 'kickstart.plugins.indent_line',
+  require 'kickstart.plugins.lint',
 
   -- NOTE: The import below can automatically add your own plugins, configuration, etc from `lua/custom/plugins/*.lua`
   --    This is the easiest way to modularize your config.
   --
   --  Uncomment the following line and add your plugins to `lua/custom/plugins/*.lua` to get going.
   --    For additional information, see `:help lazy.nvim-lazy.nvim-structuring-your-plugins`
-  -- { import = 'custom.plugins' },
+  { import = 'custom.plugins' },
 }, {
   ui = {
     -- If you are using a Nerd Font: set icons to an empty table which will use the
@@ -869,6 +1033,219 @@ require('lazy').setup({
     },
   },
 })
+
+-- toggleterm
+require('toggleterm').setup {
+  shade_terminals = false,
+  shell = '/opt/homebrew/bin/fish',
+  highlights = {
+    StatusLine = { guifg = '#ffffff', guibg = '#0E1018' },
+    StatusLineNC = { guifg = '#ffffff', guibg = '#0E1018' },
+  },
+}
+
+-- NOTE: Troubleshoot this / add somewhere
+--
+-- LazyGit keybinds
+vim.keymap.set({ 'n', 'i' }, '<leader>lg', '<cmd>lua Lazygit_toggle()<CR>', { desc = '[l]azy [g]it', silent = true })
+-- vim.keymap.set({ 'n', 'i' }, '<leader>lg', ':LazyGit<cr>', { desc = '[l]azy [g]it' })
+vim.cmd [[ command! LazyGit new | setlocal nobuflisted | term lazygit ]]
+
+function Lazygit_toggle()
+  lazygit:toggle()
+end
+-- keyset('n', '<leader>lg', '<cmd>lua Lazygit_toggle()<CR>', { silent = true })
+
+local Terminal = require('toggleterm.terminal').Terminal
+
+local lg_cmd = 'lazygit -w $PWD'
+if vim.v.servername ~= nil then
+  lg_cmd = string.format('NVIM_SERVER=%s lazygit -ucf ~/.config/nvim/lazygit.toml -w $PWD', vim.v.servername)
+end
+
+vim.env.GIT_EDITOR = "nvr -cc split --remote-wait +'set bufhidden=wipe'"
+
+local lazygit = Terminal:new {
+  cmd = lg_cmd,
+  count = 5,
+  direction = 'float',
+  float_opts = {
+    border = 'double',
+    width = function()
+      return vim.o.columns
+    end,
+    height = function()
+      return vim.o.lines
+    end,
+  },
+  -- function to run on opening the terminal
+  on_open = function(term)
+    vim.cmd 'startinsert!'
+    vim.api.nvim_buf_set_keymap(term.bufnr, 'n', 'q', '<cmd>close<CR>', { noremap = true, silent = true })
+  end,
+}
+
+function Edit(fn, line_number)
+  local edit_cmd = string.format(':e %s', fn)
+  if line_number ~= nil then
+    edit_cmd = string.format(':e +%d %s', line_number, fn)
+  end
+  vim.cmd(edit_cmd)
+end
+
+function Lazygit_toggle()
+  lazygit:toggle()
+end
+--
+-- -- keyset("n", "<leader>lg", "<cmd>lua Lazygit_toggle()<CR>", {silent = true})
+--
+-- )
+
+-- NOTE: The following is from SeniorMars:https://github.com/SeniorMars/dotfiles/blob/5b39b3ef545fa41361dfe64a2cbc03d8411a808f/.config/nvim/init.lua#L232
+
+function SpellToggle()
+  if vim.opt.spell:get() then
+    vim.opt_local.spell = false
+    vim.opt_local.spelllang = 'en'
+  else
+    vim.opt_local.spell = true
+    vim.opt_local.spelllang = { 'en_us' }
+  end
+end
+
+local git_branch = function()
+  if vim.g.loaded_fugitive then
+    local branch = vim.fn.FugitiveHead()
+    if branch ~= '' then
+      if vim.api.nvim_win_get_width(0) <= 80 then
+        return ' ' .. string.upper(branch:sub(1, 2))
+      end
+      return ' ' .. string.upper(branch)
+    end
+  end
+  return ''
+end
+
+local human_file_size = function()
+  local format_file_size = function(file)
+    local size = vim.fn.getfsize(file)
+    if size <= 0 then
+      return ''
+    end
+    local sufixes = { 'B', 'KB', 'MB', 'GB' }
+    local i = 1
+    while size > 1024 do
+      size = size / 1024
+      i = i + 1
+    end
+    return string.format('[%.0f%s]', size, sufixes[i])
+  end
+
+  local file = vim.api.nvim_buf_get_name(0)
+  if string.len(file) == 0 then
+    return ''
+  end
+  return format_file_size(file)
+end
+
+local smart_file_path = function()
+  local buf_name = vim.api.nvim_buf_get_name(0)
+  if buf_name == '' then
+    return '[No Name]'
+  end
+  local home = vim.env.HOME
+  local is_term = false
+  local file_dir = ''
+
+  if buf_name:sub(1, 5):find 'term' ~= nil then
+    ---@type string
+    file_dir = vim.env.PWD
+    if file_dir == home then
+      return '$HOME '
+    end
+    is_term = true
+  else
+    file_dir = vim.fs.dirname(buf_name)
+  end
+
+  file_dir = file_dir:gsub(home, '~', 1)
+
+  if vim.api.nvim_win_get_width(0) <= 80 then
+    file_dir = vim.fn.pathshorten(file_dir)
+  end
+
+  if is_term then
+    return file_dir .. ' '
+  else
+    return string.format('%s/%s ', file_dir, vim.fs.basename(buf_name))
+  end
+end
+
+local word_count = function()
+  local words = vim.fn.wordcount()
+  if words.visual_words ~= nil then
+    return string.format('[%s]', words.visual_words)
+  else
+    return string.format('[%s]', words.words)
+  end
+end
+
+local modes = setmetatable({
+  ['n'] = { 'NORMAL', 'N' },
+  ['no'] = { 'N·OPERATOR', 'N·P' },
+  ['v'] = { 'VISUAL', 'V' },
+  ['V'] = { 'V·LINE', 'V·L' },
+  [''] = { 'V·BLOCK', 'V·B' },
+  [''] = { 'V·BLOCK', 'V·B' },
+  ['s'] = { 'SELECT', 'S' },
+  ['S'] = { 'S·LINE', 'S·L' },
+  [''] = { 'S·BLOCK', 'S·B' },
+  ['i'] = { 'INSERT', 'I' },
+  ['ic'] = { 'INSERT', 'I' },
+  ['R'] = { 'REPLACE', 'R' },
+  ['Rv'] = { 'V·REPLACE', 'V·R' },
+  ['c'] = { 'COMMAND', 'C' },
+  ['cv'] = { 'VIM·EX', 'V·E' },
+  ['ce'] = { 'EX', 'E' },
+  ['r'] = { 'PROMPT', 'P' },
+  ['rm'] = { 'MORE', 'M' },
+  ['r?'] = { 'CONFIRM', 'C' },
+  ['!'] = { 'SHELL', 'S' },
+  ['t'] = { 'TERMINAL', 'T' },
+}, {
+  __index = function()
+    return { 'UNKNOWN', 'U' } -- handle edge cases
+  end,
+})
+
+local get_current_mode = function()
+  local mode = modes[vim.api.nvim_get_mode().mode]
+  if vim.api.nvim_win_get_width(0) <= 80 then
+    return string.format('%s ', mode[2]) -- short name
+  else
+    return string.format('%s ', mode[1]) -- long name
+  end
+end
+
+---@diagnostic disable-next-line: lowercase-global
+function status_line()
+  return table.concat {
+    get_current_mode(), -- get current mode
+    '%{toupper(&spelllang)}', -- display language and if spell is on
+    git_branch(), -- branch name
+    ' %<', -- spacing
+    smart_file_path(), -- smart full path filename
+    '%h%m%r%w', -- help flag, modified, readonly, and preview
+    '%=', -- right align
+    "%{get(b:,'gitsigns_status','')}", -- gitsigns
+    word_count(), -- word count
+    '[%-3.(%l|%c]', -- line number, column number
+    human_file_size(), -- file size
+    "[%{strlen(&ft)?&ft[0].&ft[1:]:'None'}]", -- file type
+  }
+end
+
+vim.opt.statusline = "%!luaeval('status_line()')"
 
 -- The line beneath this is called `modeline`. See `:help modeline`
 -- vim: ts=2 sts=2 sw=2 et
